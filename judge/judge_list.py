@@ -109,14 +109,16 @@ class JudgeList(object):
         return 0 <= priority < self.priorities
 
     async def gen_judge(self, problem, language, source, judge_id, priority):
+        """测试用的直接生成一个submission"""
         sid = Submission(
-            # problem=problem,
+            problem=problem,
             language=language,
+            source=source,
             date=datetime.datetime.now()
         ).save().pk
-        await self.judge(sid, problem, language, source, judge_id, priority)
+        await self.judge(sid, problem, language, source, judge_id, priority, debug_submit=True)
 
-    async def judge(self, id, problem, language, source, judge_id, priority):
+    async def judge(self, id, problem, language, source, judge_id, priority, debug_submit=False):
         """应该在外部先创建好了对应的Submission数据库文档后再调用"""
         # with self.lock:
         if id in self.submission_map or id in self.node_map:
@@ -138,7 +140,7 @@ class JudgeList(object):
             logger.info(f'Dispatched submission {id} to: {judge.name}')
             self.submission_map[id] = judge
             try:
-                await judge.submit(id, problem, language, source)
+                await judge.submit(id, problem, language, source, debug_submit=debug_submit)
             except Exception:
                 logger.exception(
                     f'Failed to dispatch {id} ({problem}, {language}) to {judge.name}')
