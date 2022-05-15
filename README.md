@@ -87,6 +87,22 @@ asyncio.ensure_future(judge_list.gen_judge('aplusb', 'CPP17', '#include<bits/std
 
 ![](assets/AC.png)
 
+# 短期TODO
+
+## 前端
+
+* [] 精细化Submission的网页，接好websocket
+* [] 实现Problem的页面搜索和过滤，找到后退可以返回上一个页面的解决方案
+* [] 做SubmissionList网页，提供和ProblemList类似的功能
+* [] 整几个logo换掉模板的mock pictures
+
+## 后端
+
+* [] 做好Problem搜索与过滤
+* [] 尽快做出用motor的v2接口
+* [] 比赛系统
+* [] OSS上传下载接口
+
 # 大饼
 
 ## 评测机（直接使用dmoj的）
