@@ -11,3 +11,4 @@ motor[srv]
 mongoengine # 目前需要它提供的模型，后期再考虑去掉这个依赖
 fastapi
 pytest
+pytest-asyncio

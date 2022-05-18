@@ -1,9 +1,10 @@
+from models.mixin.asyncable import Asyncable
 from models.mixin.chkable import Chkable
 from mongoengine.document import Document
 from mongoengine.fields import *
 from utils.password import encrypt
 
-class Judger(Document, Chkable):
+class Judger(Document, Chkable, Asyncable):
     """
     评测机的数据，用于认证评测机，查询在线状态等
 

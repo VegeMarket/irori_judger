@@ -3,10 +3,11 @@ from mongoengine import *
 from mongoengine.document import Document
 from mongoengine.fields import *
 from models.mixin.reportable import Reportable
+from models.mixin.asyncable import Asyncable
 from models.user import User
 from mongoengine.queryset import *
 
-class Comment(Document, Reportable, Expandable):
+class Comment(Document, Reportable, Expandable, Asyncable):
     """树形评论"""
     meta = {'allow_inheritance': True}
     user = LazyReferenceField(User)

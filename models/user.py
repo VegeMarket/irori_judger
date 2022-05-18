@@ -1,3 +1,4 @@
+from models.mixin.asyncable import Asyncable
 from mongoengine import *
 from mongoengine.document import Document
 from mongoengine.fields import *
@@ -18,7 +19,7 @@ AUTHORITY_LEVEL = (
 #     """OJ级别权限组"""
 #     level = IntField(default=5)
 
-class User(Document):
+class User(Document, Asyncable):
     """用户主体"""
     # 认证！（字正腔圆）
     handle = StringField(primary_key=True)

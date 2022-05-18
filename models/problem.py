@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from models.mixin.asyncable import Asyncable
 from mongoengine import *
 from mongoengine.document import Document, EmbeddedDocument
 from mongoengine.fields import *
@@ -30,20 +31,20 @@ from mongoengine.queryset import *
 
 from models.user import User
 
-class Tag(Document, Expandable):
+class Tag(Document, Expandable, Asyncable):
     """运维人员以上才能修改的Tag"""
     name = StringField(primary_key=True)
     color = IntField() # RGB色号
 
 # PROBLEM_DIFFICULTIES = ()
 
-class ProblemType(Document, Expandable):
+class ProblemType(Document, Expandable, Asyncable):
     """问题种类，像交互题，spj题，经典题，提交答案题等等"""
     name = StringField(primary_key=True)
     color = IntField() # RGB代码
     help: INVISIBLE = StringField() # 有关这种问题类型的帮助文本，有可能很长所以invisible
 
-class ProblemGroup(Document, Expandable):
+class ProblemGroup(Document, Expandable, Asyncable):
     """问题组，像hdu的来源"""
     name = StringField(primary_key=True)
     full_name = StringField() # 可选的全名
@@ -64,7 +65,7 @@ class LanguageLimit(EmbeddedDocument):
     time_limit = FloatField()
     memory_limit = IntField()
 
-class Problem(Document, Expandable):
+class Problem(Document, Expandable, Asyncable):
     SUBMISSION_SOURCE_ACCESS = (
         (SubmissionSourceAccess.FOLLOW, 'Follow global setting'),
         (SubmissionSourceAccess.ALWAYS, 'Always visible'),

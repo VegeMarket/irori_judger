@@ -5,9 +5,10 @@ from models.comment import Comment
 from models.user import User
 from models.problem import Problem
 from models.submission import Submission
+from models.mixin.asyncable import Asyncable
 from mongoengine.queryset import *
 
-class ContestProblem(Document):
+class ContestProblem(Document, Asyncable):
     """比赛状态的问题"""
     problem = ReferenceField(Problem, reverse_delete_rule=CASCADE)
     alias_name = StringField() # 短题名，像是A、B、C、D1、D2这种
@@ -17,7 +18,7 @@ class ContestProblem(Document):
     max_submissions = IntField() # 提交次数限制
 
 
-class Contest(Document):
+class Contest(Document, Asyncable):
     """比赛"""
     SCOREBOARD_VISIBLE = 'V'
     SCOREBOARD_AFTER_CONTEST = 'C'
@@ -54,7 +55,7 @@ class Contest(Document):
     is_private = BooleanField(default=False) # 是否带密码
     access_code = StringField() # 访问密码
 
-class ContestParticipation(Document):
+class ContestParticipation(Document, Asyncable):
     """用户的比赛注册信息，排行榜上就排这玩意"""
     contest = LazyReferenceField(Contest, reverse_delete_rule=CASCADE)
     submissions = ListField(LazyReferenceField(Submission, reverse_delete_rule=PULL))
@@ -70,7 +71,7 @@ class ContestParticipation(Document):
 
 
 
-class Rating(Document):
+class Rating(Document, Asyncable):
     participation = ReferenceField(ContestParticipation, reverse_delete_rule=CASCADE)
     rank = IntField()
     rating = IntField()

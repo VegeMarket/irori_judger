@@ -4,9 +4,10 @@ from mongoengine.document import Document
 from mongoengine.fields import *
 from models.mixin.expandable import Expandable
 from models.mixin.chkable import Chkable
+from models.mixin.asyncable import Asyncable
 
 
-class Runtime(Document, Expandable, Chkable):
+class Runtime(Document, Expandable, Chkable, Asyncable):
     """OJ支持的提交语言"""
     key = StringField(primary_key=True) # 与评测机语言id保持一致
     
@@ -19,7 +20,7 @@ class Runtime(Document, Expandable, Chkable):
     
     extension = StringField() # 文件智能提交用扩展名识别，注意唯一性
 
-class RuntimeVersion(Document, Expandable, Chkable):
+class RuntimeVersion(Document, Expandable, Chkable, Asyncable):
     """评测机上的具体运行时版本，没有则创建一个"""
     language = ReferenceField(Runtime, reverse_delete_rule=CASCADE)
     name = StringField(primary_key=True)

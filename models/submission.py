@@ -1,5 +1,6 @@
 from models.judger import Judger
 from models.mixin.expandable import INVISIBLE, Expandable
+from models.mixin.asyncable import Asyncable
 from mongoengine.document import *
 from mongoengine.fields import *
 from mongoengine.queryset.base import *
@@ -54,7 +55,7 @@ class SubmissionTestCase(EmbeddedDocument):
     output = StringField(verbose_name='program output')
 
 
-class Submission(Document, Expandable):
+class Submission(Document, Expandable, Asyncable):
     participation = ReferenceField('ContestParticipation', reverse_delete_rule=DO_NOTHING, null=True)
     is_pretested = BooleanField(default=False) # 是否跑过pretest
 

@@ -25,10 +25,11 @@ from models.user import AUTHORITY_LEVEL
 @logger.catch
 async def handler_wrapper(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
     j = JudgeHandler(reader, writer, judge_list)
+    await j.on_connect()
     try:
         await j.handle()
     except:
-        j.on_disconnect()
+        await j.on_disconnect()
         raise
 
 def preload() -> FastAPI:

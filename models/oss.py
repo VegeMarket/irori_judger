@@ -1,3 +1,4 @@
+from models.mixin.asyncable import Asyncable
 from mongoengine import *
 from mongoengine.document import Document
 from mongoengine.fields import *
@@ -6,7 +7,7 @@ from io import BytesIO
 import datetime
 import magic
 
-class FileStorage(Document, Chkable):
+class FileStorage(Document, Chkable, Asyncable):
     name = StringField()
     content = FileField()
     mime = StringField()

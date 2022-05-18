@@ -28,3 +28,7 @@ asyncio.ensure_future(judge_list.gen_judge('csu2464', 'CPP17', '#include<bits/st
   "problem_id": "csu2464",
   "lang": "CPP20"
 }
+
+备份与恢复命令：
+
+mongodump --uri="mongodb://127.0.0.1:27017"

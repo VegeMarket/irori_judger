@@ -21,6 +21,11 @@
 
 ## 3. 起网站端
 
+注意如果你在windows下配置py依赖的话可能需要`pip install python-magic-bin`
+
+linux环境下需要安装`libmagic`
+
+详见[requirements.txt](requirements.txt)的注释
 ```
 pip3 install -r requirements.txt
 python3 svr.py

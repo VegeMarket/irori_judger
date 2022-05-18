@@ -4,17 +4,18 @@ from judge.misc import *
 import asyncio
 import traceback
 
-class RequestHandlerMeta(type):
-    def __call__(cls, *args, **kwargs):
-        handler = super().__call__(*args, **kwargs)
-        handler.on_connect()
-        try:
-            handler.handle()
-        except BaseException:
-            logger.exception('Error in base packet handling')
-            raise
-        finally:
-            handler.on_disconnect()
+# 这部分的功能交给svr.py的handler_wrapper做
+# class RequestHandlerMeta(type):
+#     def __call__(cls, *args, **kwargs):
+#         handler = super().__call__(*args, **kwargs)
+#         handler.on_connect()
+#         try:
+#             handler.handle()
+#         except BaseException:
+#             logger.exception('Error in base packet handling')
+#             raise
+#         finally:
+#             handler.on_disconnect()
 
 class ZlibPacketHandler():
     proxies = []
@@ -24,7 +25,7 @@ class ZlibPacketHandler():
         self.writer = writer
         self.timeout = 15
         self.client_address = writer.get_extra_info('peername')
-        print(self.client_address)
+        logger.info(self.client_address)
         self._initial_tag = None
         self._got_packet = False
 
@@ -99,10 +100,10 @@ class ZlibPacketHandler():
     async def on_packet(self, data):
         raise NotImplementedError()
 
-    def on_connect(self):
+    async def on_connect(self):
         pass
 
-    def on_disconnect(self):
+    async def on_disconnect(self):
         pass
 
     def on_timeout(self):
