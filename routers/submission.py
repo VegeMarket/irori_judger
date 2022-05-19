@@ -1,105 +1,90 @@
-from fastapi import status
-from fastapi import WebSocket
-import json
-from utils.jwt import should_login
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, Request, Response, File, UploadFile, Form
-from models.user import User
-from models.submission import Submission
-from models.submission import Problem
+from loguru import logger
+from routers.query import pagination
+from fastapi import Depends, HTTPException, status
 
-from utils.broadcast import broadcaster
+# P = namedtuple('P', ['page', 'perpage', 'tail'])
 
-from pydantic import BaseModel
-from config import static
-from jose import jwt
-from utils.ctx import g
-from judge.judge_list import judge_list
-import hashlib
-import datetime
+async def list_filter_aggregation(
+    P = Depends(pagination),
+    order_by: str=None, 
+    problem: str=None,
+    language: str=None,
+    user: str=None,
+    status: str=None,
+    result: str=None
+):
+    aggregation = []
 
-import asyncio
-submission_route = APIRouter(
-    prefix="/submission",
-    tags=["submission | 代码提交"],
-    dependencies=[Depends(should_login)]
-)
+    match = []
+    if problem: match.append({'problem': problem})
+    if user: match.append({'user': user})
+    if status: match.append({'status': status})
+    if language: match.append({'language': language})
+    if result: match.append({'result': result})
 
+    if match:
+        aggregation.append({
+            '$match': {'$and': match}
+        })
+    if order_by:
+        order, key = order_by[0], order_by[1:]
+        if order == '+': # 升序
+            order = 1
+        elif order == '-':
+            order = -1
+        else:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, 'invalid ordering')
+        if key not in (
+            'date', 
+            '_id', 
+            'time', 
+            'memory', 
+            'case_total', 
+            'judged_date', 
+            'rejudge_date',
+            'points',
+            'case_points',
+        ):
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, 'invalid sorting key')
+        aggregation.append({
+            '$sort':{
+                key: order
+            }
+        })
+    
+    aggregation.append({
+        '$project':{
+            'user':1,
+            '_id': 1,
+            'problem': 1,
+            'language': 1,
+            'date': 1,
+            'time': 1,
+            'memory': 1,
+            'points':1,
+            'status':1,
+            'result':1,
+            'current_testcase':1,
+            'case_points':1,
+            'case_total':1,
+            'judged_date':1,
+            'rejudge_date':1,
+        }
+    })
 
-@submission_route.get('/')
-async def get_submission_list(page: int = 1, perpage: int = 20):
-    perpage = min(static.perpage_limit, perpage)
-    page = max(1, page)
-    total = len(Submission.objects())
-    tail = page * perpage  # 节约几个乘法
-
-    submission_list = [i.get_base_info()
-                       for i in Submission.objects()[tail-perpage:tail]]
-
-    return {
-        'data': submission_list,
-        'perpage': perpage,
-        'total': total,
-        'has_more': tail < total
-    }
-
-
-class Submit(BaseModel):
-    source: str
-    problem_id: str
-    lang: str
-
-
-@submission_route.post('/')
-async def create_submission(submit: Submit):
-    s = Submission(
-        user=g().user,
-        problem=submit.problem_id,
-        language=submit.lang,
-        source=submit.source,
-        date=datetime.datetime.now()
-    ).save()
-    asyncio.create_task(judge_list.judge(
-        s.pk,
-        submit.problem_id,
-        submit.lang,
-        submit.source,
-        None,
-        3
-    ))
-
-    return {'submission_id': s.pk}
-
-from judge.judge_list import judge_list
-@submission_route.websocket('/{submission_id}')
-async def submission_async_detail(websocket: WebSocket, submission_id: str):
-    """实时评测状态信息转发"""
-    if submission_id in judge_list.submission_map:
-        async with broadcaster.subscribe('sub_'+submission_id) as subscriber:
-            async for event in subscriber:
-                if event.message.get('type') == 'done-submission':
-                    await websocket.close(status.WS_1000_NORMAL_CLOSURE)
-                    return
-                await websocket.send_text(event.message)
-    await websocket.close(status.WS_1000_NORMAL_CLOSURE)
-
-
-# from fapi.WebsocketSession import *
-# @auth_route.websocket('/ws')
-
-
-@submission_route.get('/{submission_id}')
-async def get_submission(submission_id: str):
-    p: Submission = Submission.objects(pk=submission_id).first()
-    if not p:
-        raise HTTPException(404, 'no such submission')
-    return p.get_fields()
+    paginated = []
+    if P.start:
+        paginated.append({'$skip': P.start})
+    paginated.append({'$limit': P.stop})
+    aggregation.append({
+        '$facet':{
+            'paginated': paginated,
+            'totalCount':[{'$count': 'cnt'}]
+        }
+    })
+    logger.debug(aggregation)
+    return aggregation, P
 
 
-@submission_route.put('/{submission_id}')
-async def modify_submission(submission_id: str):
-    return 'to be done'
 
-
-@submission_route.delete('/{submission_id}')
-async def delete_submission(submission_id: str):
-    return 'to be done'
+# async def filter(p)

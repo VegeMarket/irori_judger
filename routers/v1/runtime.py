@@ -9,7 +9,7 @@ runtime_route = APIRouter(
 
 @runtime_route.get('/')
 async def get_runtime_list():
-    runtime_list = json.loads(Runtime.objects().to_json().replace('_id', 'pk'))
+    runtime_list = Runtime.objects.as_pymongo()
     return {
         'data': runtime_list,
     }
