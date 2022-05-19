@@ -11,6 +11,6 @@ runtime_route = APIRouter(
 async def get_runtime_list():
     runtime_list = Runtime.objects.as_pymongo()
     return {
-        'data': runtime_list,
+        'data': list(runtime_list),
     }
 
