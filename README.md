@@ -1,15 +1,22 @@
 # 如何跑通
 
-## 依赖
+## 0. 依赖
 
 - Python 3.8+
 - MongoDB Server 4.4+
 - Docker
 
-> 您可以在这里下一个最新的本地MongoDB Server安装包：https://www.mongodb.com/try/download/community
-> 或是注册个号白嫖512M云储存
+**MongoDB**
 
-> 您可以在这里折腾一个适合您操作系统的Docker：https://www.docker.com/get-started/
+MongoDB 在不同平台下的下载教程：https://www.mongodb.com/docs/manual/administration/install-community/
+
+也可以在这里直接下一个最新的本地 MongoDB Server 安装包：https://www.mongodb.com/try/download/community
+
+或是注册个号白嫖512M云储存
+
+**Docker**
+
+您可以在这里折腾一个适合您操作系统的Docker：https://www.docker.com/get-started/
 
 ## 1. 填写并修改`secret.template.yml`为`secret.yml`
 
