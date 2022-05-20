@@ -5,3 +5,5 @@ app/api/v1/__pycache__/
 config.yml
 secret.yml
 ssl/
+Pipfile
+Pipfile.lock
