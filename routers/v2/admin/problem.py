@@ -18,20 +18,19 @@ import datetime
 import asyncio
 problem_route = APIRouter(
     prefix="/problem",
-    tags=["problem | 问题详细"],
+    tags=["problem | 问题管理"],
 )
 
 
 @problem_route.get('')
 async def get_problem_list(
-    aggregation_P:dict = Depends(list_filter()),
+    aggregation_P:dict = Depends(list_filter(False)),
     ):
     """查询问题表"""
     aggregation, P = aggregation_P
-    res = Problem.objects.aggregate(aggregation).next()
+    res = (await Problem.aaggregate_list(aggregation))[0]
     # logger.critical(res)
     total = res['totalCount'][0]['cnt']
-    # problem_list = [i.get_visible_fields() for i in Problem.objects.exclude('desc')[P]]
     return {
         'data': res['paginated'],
         'perpage': len(res['paginated']),
@@ -42,7 +41,7 @@ async def get_problem_list(
 
 @problem_route.get('/{problem_id}')
 async def get_problem(problem_id: str):
-    p: Problem = Problem.objects(pk=problem_id).first()
+    p: Problem = await Problem.atrychk(pk=problem_id)
     if not p:
         raise HTTPException(404, 'no such problem')
     return p.to_mongo()

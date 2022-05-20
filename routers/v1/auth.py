@@ -10,6 +10,7 @@ import datetime
 from config import secret
 
 from fastapi import status
+from utils.jwt import generate_login_jwt
 
 import asyncio
 auth_route = APIRouter(
@@ -23,16 +24,6 @@ class login_form(BaseModel):
     password: str
 
 
-
-def generate_login_jwt(user: User, expires: float=86400,):
-    return jwt.encode(
-        {
-            'user': str(user.pk),
-            'cts': str(int(datetime.datetime.now().timestamp())),
-            'ts': str(int((datetime.datetime.now()+ datetime.timedelta(seconds=expires)).timestamp()))
-        },  # payload, 有效载体
-        secret.jwt_key,  # 进行加密签名的密钥
-    )
 
 
 login_invalid = HTTPException(401, 'username or password invalid')

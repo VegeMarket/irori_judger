@@ -62,6 +62,7 @@ async def list_filter_aggregation(
             'time': 1,
             'memory': 1,
             'points':1,
+            'source':1,
             'status':1,
             'result':1,
             'current_testcase':1,

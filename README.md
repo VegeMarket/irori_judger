@@ -103,10 +103,14 @@ asyncio.ensure_future(judge_list.gen_judge('aplusb', 'CPP17', '#include<bits/std
 
 ## 后端
 
-* [ ] 做好Problem搜索与过滤
-* [ ] 尽快做出用motor的v2接口
+* [x] 做好Problem搜索与过滤
+* [ ] 测试Problem搜索与过滤
+* [x] 尽快做出用motor的v2接口
 * [ ] 比赛系统
+* [ ] admin管理系统
 * [ ] OSS上传下载接口
+* [ ] 测试密码修改接口
+
 
 # 大饼
 
