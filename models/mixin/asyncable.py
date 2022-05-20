@@ -19,51 +19,21 @@ def result2bool(result):
         '__bool__': lambda self: self.raw_result['n'] > 0
     })
     result.__class__ = child_class
-    # print('after', sys.getsizeof(result))
-
-    # result.__getattribute__ = lambda self, key: self.raw_result['n'] if key == '__len__' else self.__getattribute__(key)
-    # result.__setattr__('__len__', lambda x: x.raw_result['n'])
-    # setattr(result, '__bool__', lambda self: self.raw_result['n'] > 0)
     return result
 
 class Asyncable:
     """方便一些的对接motor的工具类"""
-    # @classmethod
-    # async def achkpk(cls, pk, upd=..., *args, **kwargs) -> dict:
-    #     """确保对象存在，如不存在则塞入一个只有主键的对象，返回给定主键确定的对象(1RTT)"""
-    #     if upd == ...: upd = {}
-    #     return (await db[cls._get_collection_name()].find_one_and_update(
-    #         {'_id': pk}, 
-    #         upd, 
-    #         upsert=True,
-    #         return_document=ReturnDocument.AFTER,
-    #         *args, 
-    #         **kwargs
-    #     ))
+
+    @classmethod
+    def convert_pk(cls, pk):
+        return getattr(cls, cls._reverse_db_field_map['_id']).to_mongo(pk)
 
     @classmethod
     def _aget_collection(cls) -> motor.motor_asyncio.AsyncIOMotorCollection:
         return db[cls._get_collection_name()]
 
     @classmethod
-    def get_default(cls) -> dict:
-        """获取所定义的Document的默认值dict"""
-        # default_document = {}
-        # for k, v in cls._db_field_map.items():
-        #     field = getattr(cls, k)
-        #     if field.null:
-        #         default_document[v] = None
-        #     elif (df:=getattr(field, 'default')) is not None:
-        #         if callable(df):
-        #             default_document[v] = df()
-        #         else:
-        #             default_document[v] = df
-        return cls().to_mongo()
-
-    @classmethod
     def _to_mongoengine(cls, instance_dict: dict, created=True):
-        # instance_dict['pk'] = instance_dict.pop('_id')
-        # ins = cls(_created=created, **instance_dict)
         ins = cls._from_son(instance_dict, created=created, _auto_dereference=False)
         return ins
 
@@ -103,7 +73,7 @@ class Asyncable:
     @classmethod
     async def aupd(cls, pk, **kwargs):
         """更新给定主键的文档，返回一个UpdateResult"""
-        return result2bool(await cls._aget_collection().update_one({'_id': pk}, {'$set':kwargs}))
+        return result2bool(await cls._aget_collection().update_one({'_id': cls.convert_pk(pk)}, {'$set':kwargs}))
     
     @classmethod
     async def armrf(cls, *args, **kwargs):
@@ -113,37 +83,32 @@ class Asyncable:
     @classmethod
     async def atrychk(cls, pk, *args, **kwargs):
         """用主键尝试找一个文档"""
-        return cls._nullable(await cls._aget_collection().find_one({'_id': pk}, *args, **kwargs), created=False)
+        return cls._nullable(await cls._aget_collection().find_one({'_id': cls.convert_pk(pk)}, *args, **kwargs), created=False)
 
     @classmethod
     async def achk(cls, pk, *args, **kwargs):
         """1RTT令给定的主键的文档保证存在，不存在会塞入一个默认文档"""
-        default_document = cls.get_default()
+        default_document = cls().to_mongo()
         res = await cls._aget_collection().find_one_and_update(
-            {'_id': pk},
+            {'_id': cls.convert_pk(pk)},
             {'$setOnInsert': default_document},
             *args,
             upsert=True,
             return_document=ReturnDocument.AFTER,
             **kwargs
         )
-        # res = await cls.atrychk(pk, *args, **kwargs)
-        # if not res:
-        #     res = cls.get_default()
-        #     res['_id'] = pk
-        #     await cls._aget_collection().insert_one(res)
-        #     return cls._to_mongoengine(res)
+
         return cls._to_mongoengine(res, created=False)
 
     @classmethod
     async def aunchk(cls, pk, *args, **kwargs):
         """根据主键删一个文档"""
-        return result2bool(await cls._aget_collection().delete_one({'_id': pk}, *args, **kwargs))
+        return result2bool(await cls._aget_collection().delete_one({'_id': cls.convert_pk(pk)}, *args, **kwargs))
 
     @classmethod
     async def apop(cls, pk, *args, **kwargs):
         """根据主键删一个文档，并返回它"""
-        return cls._nullable(await cls._aget_collection().find_one_and_delete({'_id': pk}, *args, **kwargs))
+        return cls._nullable(await cls._aget_collection().find_one_and_delete({'_id': cls.convert_pk(pk)}, *args, **kwargs))
 
     @classmethod
     async def amock(cls, pk, *args, **kwargs) -> dict:
@@ -151,14 +116,11 @@ class Asyncable:
         没有则返回default文档，不会修改数据库，1RTT
         
         可以使用projection之类的查询参数，会被转发给find_one"""
-        # default = cls.get_default()
-        # default['_id'] = pk
         res = await cls._aget_collection().find_one(
-            {'_id': pk}, *args, **kwargs
+            {'_id': cls.convert_pk(pk)}, *args, **kwargs
         )
         if not res:
-            res = {'_id': pk}
-            # default.update(res)
+            res = {'_id': cls.convert_pk(pk)}
         return cls._to_mongoengine(res)
 
     @classmethod
@@ -169,46 +131,15 @@ class Asyncable:
         
         ~~确保给定主键的文档存在于数据库中，如不存在则塞入一个含默认字段的对象，没有返回值，1RTT。
         要求MongoDB Server 5.2或以上，截至写此语句时5.2仍是dev版本~~"""
-        default_document = cls.get_default()
+        default_document = cls().to_mongo()
         return result2bool(await 
             cls._aget_collection()
             .update_one(
-                {'_id': pk},
+                {'_id': cls.convert_pk(pk)},
                 {'$setOnInsert': default_document},
                 upsert=True
             )
         )
-        """
-        default_document['_id'] = pk
-        # $documents 要求5.2以上
-        aggregation = [
-            {'$documents':[default_document]},
-            {'$lookup':{
-                'from': cls._get_collection_name(),
-                'localField': '_id',
-                'foreignField': '_id',
-                'as': 'tobejoined'
-            }},
-            {'$replaceRoot':{
-                'newRoot':{
-                    '$mergeObjects':[
-                        default_document,
-                        {'$first':'$tobejoined'}
-                    ]
-                }
-            }},
-            {'$unset':'tobejoined'},
-            {'$merge': {
-                'into':cls._get_collection_name(),
-                'on': "_id",
-                'whenMatched': 'keepExisting',
-                'whenNotMatched': 'insert'
-            }}
-        ]
-        # return cls.objects.aggregate(aggregation).next()
-        cursor = db.aggregate(aggregation)
-        return (await cursor.to_list(length=None))
-        """
 
     async def asave(self, force_insert=False, **kwargs):
         """异步阉割版的.save功能，应该只会保存已经修改的field，支持投影但是缺少测试"""
@@ -219,7 +150,6 @@ class Asyncable:
 
         if created:
             object_id = await self._asave_create(doc, force_insert)
-            # await self._aget_collection().insert_one(doc, **kwargs)
         else:
             object_id, created = await self._asave_update(doc)
         # else:

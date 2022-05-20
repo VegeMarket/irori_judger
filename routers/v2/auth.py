@@ -10,6 +10,7 @@ import datetime
 from config import secret
 
 from fastapi import status
+from utils.jwt import generate_login_jwt
 
 import asyncio
 auth_route = APIRouter(
@@ -18,28 +19,11 @@ auth_route = APIRouter(
 )
 
 
-class login_form(BaseModel):
-    username: str
-    password: str
-
-
-
-def generate_login_jwt(user: User, expires: float=86400,):
-    return jwt.encode(
-        {
-            'user': str(user.pk),
-            'cts': str(int(datetime.datetime.now().timestamp())),
-            'ts': str(int((datetime.datetime.now()+ datetime.timedelta(seconds=expires)).timestamp()))
-        },  # payload, 有效载体
-        secret.jwt_key,  # 进行加密签名的密钥
-    )
-
-
 login_invalid = HTTPException(401, 'username or password invalid')
 @auth_route.post('/login')
 async def login_auth(response: Response, f: OAuth2PasswordRequestForm = Depends(), expires:float=86400):
     """用户登录，令牌写在cookie里"""
-    if not (u := User.objects(pk=f.username).first()):
+    if not (u := (await User.atrychk(f.username))):
         raise login_invalid
     if not u.pw_chk(f.password):
         raise login_invalid
@@ -48,9 +32,6 @@ async def login_auth(response: Response, f: OAuth2PasswordRequestForm = Depends(
     response.set_cookie("Authorization", token, expires, samesite='None', secure=True)
     return {"jwt": token} # TODO: [insecure] remove return jwt directly
 
-class register_form(BaseModel):
-    username: str
-    password: str
 
 @auth_route.post('/register')
 async def register_auth(response: Response, f: OAuth2PasswordRequestForm = Depends()):
@@ -58,14 +39,31 @@ async def register_auth(response: Response, f: OAuth2PasswordRequestForm = Depen
     expires = 86400
     if not f.username or not f.password:
         raise HTTPException(400, 'handle or password cannot be empty')
-    if User.objects(pk=f.username):
+    if (await User.atrychk(f.username)):
         raise HTTPException(400, 'user handle already exists')
     u = User(pk=f.username)
     u.pw_set(f.password)
-    u.save()
+    await u.asave()
     token = generate_login_jwt(u, expires)
     response.set_cookie("Authorization", token, expires, samesite='None', secure=True)
     return {"jwt": token} # TODO: [insecure] remove return jwt directly
 
 
+@auth_route.put('/password')
+async def change_password(response: Response, username: str=Form(), password: str=Form(), new: str=Form()):
+    expires = 86400
+    if not username or not password or not new:
+        raise HTTPException(400, 'handle or password cannot be empty')
+    if password == new:
+        raise HTTPException(400, 'password not changed')
+    if not (u := await User.atrychk(username)):
+        raise login_invalid
+    if not u.pw_chk(password):
+        raise login_invalid
+    u.pw_set(password)
+    u.jwt_updated = datetime.datetime.now()
+    await u.asave()
+    token = generate_login_jwt(u, expires)
+    response.set_cookie("Authorization", token, expires, samesite='None', secure=True)
+    return {"jwt": token} # TODO: [insecure] remove return jwt directly
 

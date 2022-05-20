@@ -6,15 +6,28 @@ from fastapi import Request, HTTPException
 
 from config import secret
 from utils.ctx import g
-from models.user import User
+from models.user import User, AUTHORITY
 
-def verify_login_jwt(token):
+def generate_login_jwt(user: User, expires: float=86400,):
+    return jwt.encode(
+        {
+            'user': str(user.pk),
+            'born': str(int(datetime.datetime.now().timestamp())), # 颁发令牌的时间
+            'ddl': str(int((datetime.datetime.now()+ datetime.timedelta(seconds=expires)).timestamp()))
+        },  # payload, 有效载体
+        secret.jwt_key,  # 进行加密签名的密钥
+    )
+
+async def verify_login_jwt(token):
+    """注意这步有数据库1RTT开销，证毕令牌有效性后查询用户是否存在"""
     try:
         payload = jwt.decode(token, secret.jwt_key)
-        if datetime.datetime.now().timestamp() > float(payload['ts']):
+        if datetime.datetime.now().timestamp() > float(payload['ddl']):
             return None, "token expired"
-        if not (u := User.objects(pk=payload['user']).first()):
+        if not (u := await User.atrychk(payload['user'])):
             return None, "user not exists"
+        if u.jwt_updated and u.jwt_updated > payload['born']:
+            return None, "token denied"
         return u, ""
     except:
         logger.critical(traceback.format_exc())
@@ -27,15 +40,21 @@ async def should_login(auth: Request):
         logger.debug(auth.client.host)
         
         if Authorization := auth.cookies.get('Authorization', None):
-            g().user, g().msg = verify_login_jwt(Authorization)
+            g().user, g().msg = await verify_login_jwt(Authorization)
             if g().user:
                 return g().user
         # TODO: [insecure] remove this
         elif Authorization := auth.headers.get('jwt', None):
-            g().user, g().msg = verify_login_jwt(Authorization)
+            g().user, g().msg = await verify_login_jwt(Authorization)
             if g().user:
                 return g().user
     except:
         logger.critical(traceback.format_exc())
         raise HTTPException(400, "data error")
     raise HTTPException(401, "this operation requires login")
+
+def should_granted(level=AUTHORITY.ADMIN):
+    async def func():
+        if g().user.authority_level > level: # 权限值越小越狗管理
+            raise HTTPException(401, "operation not permitted")
+    return func

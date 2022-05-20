@@ -63,6 +63,7 @@ class ContestParticipation(Document, Asyncable):
 
     score = FloatField(default=0) # 分数 赛时检索用
     cumtime = FloatField(default=0) # 罚时
+    real_start = DateTimeField() # 比赛实际开始时间，VP用
 
     is_disqualified = BooleanField(default=False) # 是否被取消资格/打星
     virtual = IntField(default=0) # 0表示正常参赛，1以上表示第几轮VP

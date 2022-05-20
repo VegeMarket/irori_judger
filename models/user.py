@@ -1,3 +1,4 @@
+import enum
 from models.mixin.asyncable import Asyncable
 from mongoengine import *
 from mongoengine.document import Document
@@ -14,6 +15,14 @@ AUTHORITY_LEVEL = (
     (4, 'guest'),
 )
 
+class AUTHORITY(enum.Enum):
+    ADMIN = 0
+    OPERATOR = 1
+    OFFICER = 2
+    DEFAULT = 3
+    GUEST = 4
+
+
 
 # class Role(Document):
 #     """OJ级别权限组"""
@@ -24,9 +33,10 @@ class User(Document, Asyncable):
     # 认证！（字正腔圆）
     handle = StringField(primary_key=True)
     password = StringField()
+    jwt_updated = DateTimeField() # 密码更新时间，令之前的失效
     email = EmailField()
     
-    authority_level = IntField(default=3, choices=AUTHORITY_LEVEL) # 不使用传统的RBAC，权限只分：狗管理、OJ运维人员、一般出题人（类似cf教练）、一般用户、游客
+    authority_level = IntField(default=AUTHORITY.DEFAULT, choices=AUTHORITY_LEVEL) # 不使用传统的RBAC，权限只分：狗管理、OJ运维人员、一般出题人（类似cf教练）、一般用户、游客
     """
     鉴权目标：
         OJ钦定传人、开发人员掌握admin

@@ -32,5 +32,9 @@ class static: # 可公开的首选项配置
     judge_handler_update_rate_time = 0.5
     judge_handler_update_rate_limit = 5
 
+    file_storage_default_limit_user = 1024 * 1024 * 1024 # 用户空间附件限额，这里默认给1GB
+    file_storage_default_limit_contest = 128 * 1024 * 1024 # 比赛空间附件限额，这里默认给128MB
+    file_storage_default_limit_problem = 128 * 1024 * 1024 # 题目空间附件限额，这里默认给128MB
+
 with open('secret.yml', 'r') as f:
     secret = JsonDict(yaml.safe_load(f)) # 包含敏感数据的配置

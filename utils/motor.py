@@ -90,3 +90,40 @@ async def L(queryset: QuerySet):
         i,
         _auto_dereference=False,
     ) for i in (await cursor.to_list(length=None))]
+
+from motor.motor_asyncio import AsyncIOMotorGridFSBucket
+from mongoengine.fields import FileField
+from io import BytesIO
+class GridFSError(Exception):
+    pass
+async def afsput(self: FileField, source):
+    """mongoengine的FileField对象异步放入
+    - `source`: The source stream of the content to be uploaded. Must be
+    a file-like object that implements :meth:`read` or a string."""
+    if self.grid_id:
+        raise GridFSError(
+            "This document already has a file. Either delete "
+            "it or call replace to overwrite it"
+        )
+    afs = AsyncIOMotorGridFSBucket(db, self.collection_name)
+    fname = repr(self.instance) + '.' + self.key
+    self.grid_id = await afs.upload_from_stream(fname, source)
+    self._mark_as_changed()
+
+async def afsread(self: FileField) -> bytes:
+    """mongoengine的FileField对象异步读出为bytes"""
+    if self.grid_id is None:
+        return None
+    afs = AsyncIOMotorGridFSBucket(db, self.collection_name)
+    b = BytesIO()
+    await afs.download_to_stream(self.grid_id, b)
+    b.seek(0)
+    return b.read()
+
+async def afsdelete(self: FileField):
+    """mongoengine的FileField对象异步删除"""
+    afs = AsyncIOMotorGridFSBucket(db, self.collection_name)
+    await afs.delete(self.grid_id)
+    self.grid_id = None
+    self.gridout = None
+    self._mark_as_changed()
