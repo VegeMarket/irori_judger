@@ -1,5 +1,5 @@
 import json
-from routers.problem import list_filter_aggregation
+from routers.problem import list_filter
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, Request, Response, File, UploadFile, Form, status
 from loguru import logger
 from models.user import User
@@ -24,7 +24,7 @@ problem_route = APIRouter(
 
 @problem_route.get('')
 async def get_problem_list(
-    aggregation_P:dict = Depends(list_filter_aggregation),
+    aggregation_P:dict = Depends(list_filter()),
     ):
     """查询问题表"""
     aggregation, P = aggregation_P

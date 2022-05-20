@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, FastAPI
 v1_router = APIRouter(
     prefix="/api/v1",
-    tags=["All"],
+    tags=["Basic V1"],
     dependencies=[]
 )
 

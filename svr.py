@@ -73,8 +73,8 @@ def preload() -> FastAPI:
 
     from routers.v2_route import v2_router
     app.include_router(v2_router)
-    from routers.v1_route import v1_router
-    app.include_router(v1_router)
+    # from routers.v1_route import v1_router
+    # app.include_router(v1_router)
     return app
 
 

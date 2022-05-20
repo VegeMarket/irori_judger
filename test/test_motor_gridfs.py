@@ -34,6 +34,8 @@ class TFS(Document, Asyncable):
 
 @pytest.mark.asyncio
 async def test_asyncable():
+    # await afsdeleteid('6287c9590899375ef6c78cac')
+
     for i in (await L(TFS.objects)):
         i.f.delete()
     await TFS.armrf()
@@ -70,6 +72,10 @@ async def test_asyncable():
     assert t.f.read() == b'CC'
     assert (await afsread(t.f)) == b'CC'
     await afsdelete(t.f)
+
+    # for i in (await L(TFS.objects)):
+    #     await afsdelete(i.f)
+    await TFS.armrf()
 
 
 

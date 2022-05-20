@@ -1,3 +1,4 @@
+from loguru import logger
 from config import secret
 import motor.motor_asyncio
 
@@ -96,7 +97,7 @@ from mongoengine.fields import FileField
 from io import BytesIO
 class GridFSError(Exception):
     pass
-async def afsput(self: FileField, source):
+async def afsput(self: FileField, source, fname: str=None):
     """mongoengine的FileField对象异步放入
     - `source`: The source stream of the content to be uploaded. Must be
     a file-like object that implements :meth:`read` or a string."""
@@ -106,7 +107,8 @@ async def afsput(self: FileField, source):
             "it or call replace to overwrite it"
         )
     afs = AsyncIOMotorGridFSBucket(db, self.collection_name)
-    fname = repr(self.instance) + '.' + self.key
+    if not fname:
+        fname = repr(self.instance) + '.' + self.key
     self.grid_id = await afs.upload_from_stream(fname, source)
     self._mark_as_changed()
 
@@ -123,7 +125,18 @@ async def afsread(self: FileField) -> bytes:
 async def afsdelete(self: FileField):
     """mongoengine的FileField对象异步删除"""
     afs = AsyncIOMotorGridFSBucket(db, self.collection_name)
-    await afs.delete(self.grid_id)
+    try:
+        await afs.delete(self.grid_id)
+    except Exception as e:
+        logger.critical(str(e))
     self.grid_id = None
     self.gridout = None
     self._mark_as_changed()
+
+from bson import ObjectId
+
+async def afsdeleteid(grid_id, collection_name: str='fs'):
+    afs = AsyncIOMotorGridFSBucket(db, collection_name)
+    grid_id = ObjectId(grid_id)
+    await afs.delete(grid_id)
+

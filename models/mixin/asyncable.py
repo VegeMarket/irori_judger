@@ -1,7 +1,10 @@
+from fastapi import HTTPException
 from inspect import isfunction
 from loguru import logger
 from typing import Optional, TypeVar, Union, get_type_hints
 import datetime
+
+from mongoengine.errors import ValidationError
 from utils.motor import db
 from pymongo import ReturnDocument
 import motor
@@ -105,6 +108,7 @@ class Asyncable:
         """根据主键删一个文档"""
         return result2bool(await cls._aget_collection().delete_one({'_id': cls.convert_pk(pk)}, *args, **kwargs))
 
+    
     @classmethod
     async def apop(cls, pk, *args, **kwargs):
         """根据主键删一个文档，并返回它"""
@@ -141,8 +145,27 @@ class Asyncable:
             )
         )
 
-    async def asave(self, force_insert=False, **kwargs):
+    async def adestroy(self, *args, **kwargs):
+        """删掉自己"""
+        return (await self.aunchk(self.pk, *args, **kwargs))
+
+    async def asave_report_error(self, *args, **kwargs):
+        try:
+            return (await self.asave(*args, **kwargs))
+        except ValidationError as e:
+            raise HTTPException(400, str(e))
+        except Exception as e:
+            raise HTTPException(500, str(e))
+
+    async def asave(
+        self,
+        force_insert=False, 
+        validate=True,
+        clean=True, **kwargs):
         """异步阉割版的.save功能，应该只会保存已经修改的field，支持投影但是缺少测试"""
+        if validate:
+            self.validate(clean=clean)
+
         doc_id = self.to_mongo(fields=[self._meta["id_field"]])
         created = "_id" not in doc_id or self._created or force_insert
 
