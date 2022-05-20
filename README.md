@@ -34,7 +34,7 @@ linux环境下需要安装`libmagic`
 
 详见[requirements.txt](requirements.txt)的注释
 ```
-pip3 install -r requirements.txt
+pip3 install -U -r requirements.txt
 python3 svr.py
 ```
 
