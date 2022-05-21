@@ -73,7 +73,7 @@ class Problem(Document, Expandable, Asyncable):
         (SubmissionSourceAccess.ONLY_OWN, 'Only own submissions'),
     )
     # id = SequenceField(default=1000, primary_key=True)
-    code = StringField(primary_key=True) # 标题
+    code = StringField(primary_key=True, regex=r'^[0-9a-z_]+$', max_length=16) # 标题
 
     # 管理属性
     authors = ListField(
@@ -123,12 +123,6 @@ class Problem(Document, Expandable, Asyncable):
     # {default: [<DESC_STRUCTURE>], en: [<DESC_STRUCTURE>], zh: [<DESC_STRUCTURE>] ...}
     desc: INVISIBLE = DictField()
     title = StringField()
-    # DESC_TYPE = (
-    #     ('M', 'Markdown'),
-    #     ('L', 'LaTeX'),
-    #     ('H', 'html'),
-    # )
-    # desc_type = StringField(choices=DESC_TYPE)
 
     language_limit = EmbeddedDocumentListField(LanguageLimit)
 

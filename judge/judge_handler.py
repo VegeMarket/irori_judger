@@ -1,4 +1,5 @@
 import datetime
+from models.user import User
 from operator import itemgetter
 import time
 import traceback
@@ -245,7 +246,6 @@ class JudgeHandler(ZlibPacketHandler):
 
         # s: Submission = Submission.objects(pk=submission).first()
         try:
-            # pipeline_result: dict = Submission.objects.aggregate([
             pipeline_result: dict = (await Submission.aaggregate_list([
                 {'$match':{'_id': submission}},
                 {
@@ -296,7 +296,6 @@ class JudgeHandler(ZlibPacketHandler):
             if participation:
                 part_id = participation[0]['_id']
                 part_virtual = participation[0]['virtual']
-                # attempt_no = Submission.objects.aggregate([
                 attempt_no = (await Submission.aaggregate_list([
                     {
                         '$match':{
@@ -309,45 +308,17 @@ class JudgeHandler(ZlibPacketHandler):
                             ]
                         }
                     },{'$count': 'attempt_no'}
-                # ]).next()['attempt_no']
                 ]))[0]['attempt_no']
             else:
                 part_id, part_virtual, attempt_no = None, None, None
 
 
-            # pid, lang_limits, time, memory, short_circuit, lid, is_pretested, sub_date, uid, part_virtual, part_id = (
-            #     Submission.objects.filter(pk=submission)
-            #               .scalar('problem__code', 'problem__language_limit', 'problem__time_limit', 'problem__memory_limit',
-            #                            'problem__short_circuit', 'language__key', 'is_pretested', 'date', 'user__handle',
-            #                            'participation__virtual', 'participation')).get()
-            # pid, lang_limits, time, memory, short_circuit, lid, is_pretested, sub_date, uid, part_virtual, part_id = 
             logger.warning(part_id)
             logger.warning(type(part_id))
             for i in lang_limits:
                 if i.pk == lid:
                     time, memory = i.time_limit, i.memory_limit
                     break
-            # p: Problem = Problem.objects(pk=s.problem.primary_key).only('code', 'time_limit', 'memory_limit', 'short_circuit').first()
-
-            # pid, time, memory, short_circuit = p.pk, p.time_limit, p.memory_limit, p.short_circuit
-            # lid = s.language.primary_key
-            # sub_date = s.date
-            # uid = s.user.primary_key
-            # if s.participation:
-            #     pa: ContestParticipation = s.participation
-            #     is_pretested = s.contest_meta.is_pretest
-            #     part_virtual = pa.virtual
-            #     part_id = pa.pk
-
-            # attempt_no = Submission.objects(problem__id=pid, participation__id=part_id, user__id=uid,
-            #                             date__lt=sub_date, status__nin=('CE', 'IE')).count() + 1
-            # else:
-            #     is_pretested = False
-            #     part_virtual = None
-            #     part_id = None
-        #         s = Submission.objects.get(pk=submission)
-
-            # p: Problem = s.problem.fetch()
             
             return SubmissionData(
                 time=time,
@@ -358,7 +329,6 @@ class JudgeHandler(ZlibPacketHandler):
                 attempt_no=attempt_no,
                 user=uid,
             )
-        # except:
         except Submission.DoesNotExist:
             logger.error('Submission vanished: %s', submission)
             json_log.error(self._make_json_log(
@@ -508,12 +478,7 @@ class JudgeHandler(ZlibPacketHandler):
         if (await Submission.aupd(pk=id,
                 status='G', is_pretested=packet['pretested'], current_testcase=1,
                 batch=False, judged_date=datetime.datetime.now(), cases=[])):
-            # Submission.objects(pk=id).update(cases=[])
-            # SubmissionTestCase.objects.filter(
-                # submission_id=id).delete()
             await publish_submission(id, {'type': 'grading-begin'})
-            # event.post('sub_%s' % Submission.get_id_secret(
-                # id), {'type': 'grading-begin'})
             await self._post_update_submission(id, 'grading-begin')
             json_log.info(self._make_json_log(packet, action='grading-begin'))
         else:
@@ -529,7 +494,6 @@ class JudgeHandler(ZlibPacketHandler):
         self.batch_id = None
         id = packet['submission-id']
         try:
-            # submission: Submission = Submission.objects(pk=id).first()
             submission: Submission = await Submission.atrychk(id)
             # raw_submission = Submission.objects.aggregate([
             #     {}
@@ -585,6 +549,13 @@ class JudgeHandler(ZlibPacketHandler):
         submission.points = sub_points
         submission.result = status_codes[status]
         await submission.asave()
+        await User.after_submission(submission)
+
+        if submission.participation:
+            await ContestParticipation.update_submission_cache(submission.participation.pk)
+        
+        # user = User.aupd(submission.user)
+
 
         json_log.info(self._make_json_log(
             packet, action='grading-end', time=time, memory=memory,

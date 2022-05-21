@@ -56,7 +56,7 @@ class SubmissionTestCase(EmbeddedDocument):
 
 
 class Submission(Document, Expandable, Asyncable):
-    participation = ReferenceField('ContestParticipation', reverse_delete_rule=DO_NOTHING, null=True)
+    participation = LazyReferenceField('ContestParticipation', reverse_delete_rule=DO_NOTHING, null=True) # 可能要上一个哈希索引
     is_pretested = BooleanField(default=False) # 是否跑过pretest
 
     STATUS = (
@@ -74,13 +74,13 @@ class Submission(Document, Expandable, Asyncable):
     meta = {'allow_inheritance': True}
     id = SequenceField(primary_key=True)
     user = LazyReferenceField(User, reverse_delete_rule=CASCADE)
-    problem = LazyReferenceField(Problem, reverse_delete_rule=CASCADE)
+    problem = LazyReferenceField(Problem, reverse_delete_rule=CASCADE) # 可能要上索引
     language = LazyReferenceField(Runtime, reverse_delete_rule=CASCADE)
     date = DateTimeField() # 提交日期
 
     time = FloatField()
     memory = FloatField()
-    points = FloatField() # 赋分，显示为的分数，考虑到有时候需要手动判错
+    points = FloatField() # 赋分，显示为的分数，考虑到有时候需要手动判错，注意要受case_total的限制
 
     status = StringField(default='QU', choices=STATUS)
     result = StringField(choices=SUBMISSION_RESULT)

@@ -41,7 +41,7 @@ async def get_problem_list(
 
 @problem_route.get('/{problem_id}')
 async def get_problem(problem_id: str):
-    p: Problem = await Problem.atrychk(pk=problem_id)
+    p: Problem = await Problem.afind_one({'_id':problem_id, 'is_public': True})
     if not p:
         raise HTTPException(404, 'no such problem')
     return p.to_mongo()

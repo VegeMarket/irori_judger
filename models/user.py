@@ -33,8 +33,11 @@ class User(Document, Asyncable):
     # 认证！（字正腔圆）
     handle = StringField(primary_key=True)
     password = StringField()
+    password_reset_key = StringField() # 重设密码的令牌，忘记密码用
     jwt_updated = DateTimeField() # 密码更新时间，令之前的失效
+    
     email = EmailField()
+    email_verify_key = StringField() # 验证邮箱的令牌
     
     authority_level = IntField(default=AUTHORITY.DEFAULT, choices=AUTHORITY_LEVEL) # 不使用传统的RBAC，权限只分：狗管理、OJ运维人员、一般出题人（类似cf教练）、一般用户、游客
     
@@ -59,3 +62,22 @@ class User(Document, Asyncable):
         self.password = encrypt(password)
         return self
 
+    @classmethod
+    async def after_submission(cls, submission):
+        """更新solved和tried状态，或者未来有什么状态也要一起更新"""
+        pid = submission.problem.pk
+        if submission.result not in ('IE', 'CE'):
+            if submission.result == 'AC':
+                return (await cls.aupdate_one(
+                    {'_id': pid},
+                    {
+                        '$addToSet': {'solved':pid},
+                        '$pull': {'tried': pid}
+                    }
+                ))
+            else:
+                return (await cls.aupdate_one(
+                    {'_id': pid, 'solved': {'$ne': pid}},
+                    {'$addToSet': {'tried': pid}}
+                ))
+        return False

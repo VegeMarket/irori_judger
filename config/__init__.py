@@ -20,7 +20,7 @@ class static: # 可公开的首选项配置
         # ssl_certfile='ssl/A.crt',
         # ssl_keyfile='ssl/A.key',
         # reload=True,
-        workers=1, # 在有有效的迁移方案前先保持单进程运行，大概也够用
+        workers=4, # 在有有效的迁移方案前先保持单进程运行，大概也够用
         # 要不以后整个服务读写分离吧，写api单线程，与judger交互
     )
     perpage_limit = 50 # 分页元素个数最大限制

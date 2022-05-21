@@ -1,8 +1,9 @@
 import json
+from utils.jwt import should_granted
 from routers.problem import list_filter
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, Request, Response, File, UploadFile, Form, status
 from loguru import logger
-from models.user import User
+from models.user import AUTHORITY, User
 from models.problem import Problem
 from routers.query import pagination
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -19,6 +20,7 @@ import asyncio
 problem_route = APIRouter(
     prefix="/problem",
     tags=["problem | 问题管理"],
+    dependencies=[Depends(should_granted(AUTHORITY.ADMIN))]
 )
 
 
