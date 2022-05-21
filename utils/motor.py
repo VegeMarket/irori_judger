@@ -5,8 +5,11 @@ import motor.motor_asyncio
 client = motor.motor_asyncio.AsyncIOMotorClient(secret.db_auth)
 db = client[secret.db_name]
 
+# 这里加一个oss的client就行了，想想oss分离也不难
+
 # MongoEngine的queryset在切片的时候不会查库，会返回一个设置了偏移的queryset
 # 只有在查询具体对象的时候会查库
+from config import static
 from mongoengine.queryset import QuerySet
 
 def C(self: QuerySet):
@@ -106,7 +109,7 @@ async def afsput(self: FileField, source, fname: str=None):
             "This document already has a file. Either delete "
             "it or call replace to overwrite it"
         )
-    afs = AsyncIOMotorGridFSBucket(db, self.collection_name)
+    afs = AsyncIOMotorGridFSBucket(db, self.collection_name, static.gridfs_chunk_size)
     if not fname:
         fname = repr(self.instance) + '.' + self.key
     self.grid_id = await afs.upload_from_stream(fname, source)
@@ -116,7 +119,7 @@ async def afsread(self: FileField) -> bytes:
     """mongoengine的FileField对象异步读出为bytes"""
     if self.grid_id is None:
         return None
-    afs = AsyncIOMotorGridFSBucket(db, self.collection_name)
+    afs = AsyncIOMotorGridFSBucket(db, self.collection_name, static.gridfs_chunk_size)
     b = BytesIO()
     await afs.download_to_stream(self.grid_id, b)
     b.seek(0)
@@ -124,7 +127,7 @@ async def afsread(self: FileField) -> bytes:
 
 async def afsdelete(self: FileField):
     """mongoengine的FileField对象异步删除"""
-    afs = AsyncIOMotorGridFSBucket(db, self.collection_name)
+    afs = AsyncIOMotorGridFSBucket(db, self.collection_name, static.gridfs_chunk_size)
     try:
         await afs.delete(self.grid_id)
     except Exception as e:
@@ -136,7 +139,7 @@ async def afsdelete(self: FileField):
 from bson import ObjectId
 
 async def afsdeleteid(grid_id, collection_name: str='fs'):
-    afs = AsyncIOMotorGridFSBucket(db, collection_name)
+    afs = AsyncIOMotorGridFSBucket(db, collection_name, static.gridfs_chunk_size)
     grid_id = ObjectId(grid_id)
     await afs.delete(grid_id)
 

@@ -53,9 +53,12 @@ class FileStorage(Document, Chkable, Asyncable):
         if space or limit:
             f.seek(0, 2)
             siz = f.tell()
-            logger.debug(f'siz: {siz}')
+            chunked_size = (
+                siz // static.gridfs_chunk_size + (siz % static.gridfs_chunk_size > 0) # 上取整
+            ) * static.gridfs_chunk_size # 分块大小
+            logger.debug(f'siz: {siz}, chunked: {chunked_size}') # 应该要算块
             if space:
-                if space.used + siz > space.allow:
+                if space.used + chunked_size > space.allow:
                     raise UploadLimitExceed(f'{space.used + siz - space.allow} bytes exceeded limits')
                 space.used += siz
             if limit is not None and siz > limit:

@@ -57,7 +57,7 @@ async def create_submission(submit: Submit):
         language=submit.lang,
         source=submit.source,
         date=datetime.datetime.now()
-    ).asave()
+    ).asave_report_error()
     asyncio.create_task(judge_list.judge(
         s.pk,
         submit.problem_id,

@@ -36,7 +36,8 @@ class static: # 可公开的首选项配置
     file_storage_default_limit_contest = 128 * 1024 * 1024 # 比赛空间附件限额，这里默认给128MB
     file_storage_default_limit_problem = 128 * 1024 * 1024 # 题目空间附件限额，这里默认给128MB
 
-    avatar_limit = 256 * 1024 # 256kb头像
+    avatar_limit = 261120 # 头像限制大小，这里限制为GridFS一个块大小，255kb
+    gridfs_chunk_size = 261120 # GridFS中一个分块的大小，这里取默认的255kb
 
 with open('secret.yml', 'r') as f:
     secret = JsonDict(yaml.safe_load(f)) # 包含敏感数据的配置
