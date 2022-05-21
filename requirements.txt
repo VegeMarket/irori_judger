@@ -2,7 +2,7 @@ llist
 netaddr
 prompt_toolkit
 pyyaml
-# 猜解文件类型，win下需要pip install python-magic-bin, debian下sudo apt-get install libmagic1
+# 猜解文件类型，win下需要pip install python-magic-bin, debian下sudo apt-get install libmagic1, macos 下 brew install libmagic
 python-magic
 # 本地多进程广播用，之后如果用redis就改成broadcaster[redis]
 broadcaster
@@ -14,5 +14,5 @@ pytest
 pytest-asyncio
 loguru
 uvicorn
-jose
+python-jose
 python-multipart
