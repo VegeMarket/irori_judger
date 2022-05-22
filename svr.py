@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, Request
 from loguru import logger
 logger.add('logs/site_{time}.log', rotation="1 day", compression="zip")
@@ -38,6 +39,8 @@ def preload() -> FastAPI:
 
     tier2: 后期考虑多worker的时候重写一下，不过应该也不会有需要用多worker那么大并发量
     """
+    if not os.path.exists('logs'):
+        os.mkdir('logs')
     app = FastAPI()
     app.add_middleware(
         CORSMiddleware,
