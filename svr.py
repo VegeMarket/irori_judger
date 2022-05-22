@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request
 from loguru import logger
+logger.add('logs/site_{time}.log', rotation="1 day", compression="zip")
 import tracemalloc
 import uvicorn
 tracemalloc.start()

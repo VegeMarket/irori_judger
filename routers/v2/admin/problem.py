@@ -1,5 +1,17 @@
+"""设计思路:
+
+1. 不要另外建立题目数据数据模型，直接从给定文件夹中提取
+
+2. 设计一种yml的解析和编辑方式，如不存在则放入一个模板
+
+3. 在不存在文件夹时新建，先判断题目名称合法，为了防止ntfs大小写不敏感产生问题，限制题目名字为小写数字下划线
+
+4. 运维应该自己准备一套轮子用来同步题目集，如fsync，onedrive
+
+
+"""
 import json
-from utils.jwt import should_granted
+from utils.jwt import should_granted, should_login
 from routers.problem import list_filter
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, Request, Response, File, UploadFile, Form, status
 from loguru import logger
@@ -11,18 +23,21 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from config import static
 from jose import jwt
-
+from config import secret
 
 import hashlib
+import os
+
 import datetime
 
 import asyncio
 problem_route = APIRouter(
     prefix="/problem",
     tags=["problem | 问题管理"],
-    dependencies=[Depends(should_granted(AUTHORITY.ADMIN))]
+    dependencies=[
+        Depends(should_login),
+        Depends(should_granted(AUTHORITY.ADMIN))]
 )
-
 
 @problem_route.get('')
 async def get_problem_list(
@@ -48,9 +63,35 @@ async def get_problem(problem_id: str):
         raise HTTPException(404, 'no such problem')
     return p.to_mongo()
 
-# @problem_route.post('')
-# async def create_problem():
-#     raise HTTPException(402, '你给钱我就写')
+@problem_route.post('/{problem_id}')
+async def create_problem(problem_id: str):
+    """新建一个问题，为其分配文件夹，写入init.yml文件"""
+    if (await Problem.atrychk(problem_id)):
+        raise HTTPException(400, 'problem already exists')
+    await Problem(pk=problem_id).asave_report_error()
+    dest_path = os.path.join(secret.problem_dir, problem_id)
+    if not os.path.exists(dest_path):
+        os.mkdir(dest_path)
+    
+    if not os.path.exists(ymlfile:=os.path.join(dest_path, 'init.yml')):
+        with open(ymlfile, 'w', newline='\n') as f:
+            pass
+            # f.write('\n')
+    return Response(status_code=200)
+
+import shutil
+
+@problem_route.delete('/{problem_id}')
+async def delete_problem(problem_id: str, remove_dir: bool=False):
+    """删掉一个问题，如果指定remove_dir则会连同文件夹一起删除"""
+    if not (p:=await Problem.atrychk(problem_id)):
+        raise HTTPException(404, 'problem not exists')
+    await p.adestroy()
+    dest_path = os.path.join(secret.problem_dir, problem_id)
+    if remove_dir:
+        shutil.rmtree(dest_path)
+    return Response(status_code=200)
+
 
 # @problem_route.put('/{problem_id}')
 # async def modify_problem(problem_id: str):

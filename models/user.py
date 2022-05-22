@@ -21,7 +21,7 @@ AUTHORITY_LEVEL = (
     受信的老队员掌握officer
     一般通过用户掌握default
 """
-class AUTHORITY(enum.Enum):
+class AUTHORITY:
     ADMIN = 0
     OPERATOR = 1
     OFFICER = 2
