@@ -31,7 +31,7 @@ class AUTHORITY(enum.Enum):
 class User(Document, Asyncable):
     """用户主体"""
     # 认证！（字正腔圆）
-    handle = StringField(primary_key=True)
+    handle = StringField(primary_key=True, regex=r'^[0-9a-zA-Z_]+$')
     password = StringField()
     password_reset_key = StringField() # 重设密码的令牌，忘记密码用
     jwt_updated = DateTimeField() # 密码更新时间，令之前的失效

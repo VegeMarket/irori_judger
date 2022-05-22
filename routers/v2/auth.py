@@ -48,7 +48,7 @@ async def register_auth(req:Request, response: Response, f: OAuth2PasswordReques
     u.pw_set(f.password)
     u.last_access = datetime.datetime.now()
     u.last_ip = req.client.host
-    await u.asave()
+    await u.asave_report_error()
     token = generate_login_jwt(u, expires)
     response.set_cookie("Authorization", token, expires, samesite='None', secure=True)
     return {"jwt": token} # TODO: [insecure] remove return jwt directly
