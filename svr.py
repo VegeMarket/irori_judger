@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from loguru import logger
 logger.add('logs/site_{time}.log', rotation="1 day", compression="zip")
 import tracemalloc
@@ -22,6 +22,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from models import *
 from judge import *
 from models.user import AUTHORITY_LEVEL
+from content_size_limit_asgi import ContentSizeLimitMiddleware, ContentSizeExceeded
+from fastapi.responses import JSONResponse
+from fastapi.exception_handlers import http_exception_handler
 
 
 @logger.catch
@@ -50,6 +53,21 @@ def preload() -> FastAPI:
         allow_headers=["*"],
     )
 
+    # 用这个中间件会导致外层抛出一个HTTP 400说parsing body出错，它的__context__才是ContentSizeExceeded
+    # app.add_middleware(
+    #     ContentSizeLimitMiddleware, 
+    #     max_content_size=static.content_size_limit)
+
+    # async def content_size_exceeded_handler(request: Request, exc: HTTPException):
+    #     """特判ContentSizeExceeded，改成413错误，然后其它照旧走默认处理"""
+    #     if isinstance(getattr(exc, '__context__', None), ContentSizeExceeded):
+    #         logger.warning(f'{request.client} {exc.__context__}')
+    #         return JSONResponse({'detail': str(exc.__context__)}, status_code=413)
+    #     return (await http_exception_handler(request, exc))
+
+    # 不能用Exception来抓错，会被FastAPI默认提供的HTTPException抢先抓到
+    # app.add_exception_handler(400, content_size_exceeded_handler)
+
     @app.middleware('http') # TODO: [insecure] set to a fixed origin
     async def cors_everywhere(request: Request, call_next):
         logger.debug(request.headers)
@@ -77,6 +95,7 @@ def preload() -> FastAPI:
 
     from routers.v2_route import v2_router
     app.include_router(v2_router)
+
     # from routers.v1_route import v1_router
     # app.include_router(v1_router)
     return app

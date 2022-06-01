@@ -16,3 +16,4 @@ loguru
 uvicorn
 python-jose
 python-multipart
+content_size_limit_asgi

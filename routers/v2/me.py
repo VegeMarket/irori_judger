@@ -104,7 +104,7 @@ async def upload_avatar(f: UploadFile = File(...)):
     except UploadLimitExceed as e:
         raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, str(e))
     except TypeError as e:
-        raise HTTPException(400, str(e))
+        raise HTTPException(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, str(e))
     await release_old_avatar()
     g().user.avatar = f'oss:{avatar_fs.pk}'
     await g().user.asave()
