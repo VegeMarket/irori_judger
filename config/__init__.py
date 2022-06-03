@@ -46,7 +46,7 @@ class static: # 可公开的首选项配置
     gridfs_chunk_size = 261120 # GridFS中一个分块的大小，这里取默认的255kb
 
     problem_yml_limit = 16 * 1024 # 每个问题的init.yml限制大小
-    checker_source_max_count = 10 # checker的源码文件个数限制
+    source_max_count = 10 # checker和interactor的源码文件个数限制
 
 with open('secret.yml', 'r') as f:
     secret = JsonDict(yaml.safe_load(f)) # 包含敏感数据的配置
