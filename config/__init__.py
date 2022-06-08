@@ -48,5 +48,5 @@ class static: # 可公开的首选项配置
     problem_yml_limit = 16 * 1024 # 每个问题的init.yml限制大小
     source_max_count = 10 # checker和interactor的源码文件个数限制
 
-with open('secret.yml', 'r') as f:
+with open('secret.yml', 'r', newline='\n', encoding='utf-8') as f:
     secret = JsonDict(yaml.safe_load(f)) # 包含敏感数据的配置
