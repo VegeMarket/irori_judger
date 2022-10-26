@@ -3,9 +3,12 @@
 计划同时支持env文件和yml文件，后者优先
 """
 
+import shutil
 import yaml
 from utils.jsondict import JsonDict
 import uvicorn
+import os
+from loguru import logger
 
 class static: # 可公开的首选项配置
     judger_monitor_config = {
@@ -16,7 +19,6 @@ class static: # 可公开的首选项配置
         'svr:app',
         '0.0.0.0',
         19999,
-        debug=True,
         # ssl_certfile='ssl/A.crt', # 本地调试用自签证书
         # ssl_keyfile='ssl/A.key',
         # reload=True, # 这个选项不用uvicorn启动没用
@@ -48,5 +50,8 @@ class static: # 可公开的首选项配置
     problem_yml_limit = 16 * 1024 # 每个问题的init.yml限制大小
     source_max_count = 10 # checker和interactor的源码文件个数限制
 
+if not os.path.exists('secret.yml'):
+    logger.warning('secret.yml not found, copy secret.template.yml instead.')
+    shutil.copyfile('secret.template.yml', 'secret.yml')
 with open('secret.yml', 'r', newline='\n', encoding='utf-8') as f:
     secret = JsonDict(yaml.safe_load(f)) # 包含敏感数据的配置
