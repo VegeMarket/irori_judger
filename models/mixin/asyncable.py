@@ -32,6 +32,16 @@ class Asyncable:
         return getattr(cls, cls._reverse_db_field_map['_id']).to_mongo(pk)
 
     @classmethod
+    def ref2pk(cls, kwargs: dict):
+        nkw = {}
+        for k, v in kwargs.items():
+            if not isinstance(v, Asyncable):
+                nkw[k] = v
+            else:
+                nkw[k] = cls.convert_pk(v)
+        return nkw
+
+    @classmethod
     def _aget_collection(cls) -> motor.motor_asyncio.AsyncIOMotorCollection:
         return db[cls._get_collection_name()]
 
@@ -76,7 +86,7 @@ class Asyncable:
     @classmethod
     async def aupd(cls, pk, **kwargs):
         """更新给定主键的文档，返回一个UpdateResult"""
-        return result2bool(await cls._aget_collection().update_one({'_id': cls.convert_pk(pk)}, {'$set':kwargs}))
+        return result2bool(await cls._aget_collection().update_one({'_id': cls.convert_pk(pk)}, {'$set':cls.ref2pk(kwargs)}))
     
     @classmethod
     async def armrf(cls, *args, **kwargs):

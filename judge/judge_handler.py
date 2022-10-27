@@ -1,4 +1,5 @@
 import datetime
+from typing import Union
 from models.user import User
 from operator import itemgetter
 import time
@@ -176,7 +177,6 @@ class JudgeHandler(ZlibPacketHandler):
         self.judge_address = f'[{self.client_address[0]}]:{self.client_address[1]}'
         json_log.info(self._make_json_log(action='auth', info='judge successfully authenticated',
                                           executors=list(self.executors.keys())))
-        self.judge = self.name
         
 
     async def _disconnected(self):
@@ -245,97 +245,98 @@ class JudgeHandler(ZlibPacketHandler):
         # _ensure_connection()
 
         # s: Submission = Submission.objects(pk=submission).first()
-        try:
-            pipeline_result: dict = (await Submission.aaggregate_list([
-                {'$match':{'_id': submission}},
-                {
-                    '$lookup':{
-                        'from': Problem._get_collection_name(),
-                        'localField': 'problem',
-                        'foreignField': '_id',
-                        'as': 'problem'
-                    },
+        pipeline_result: dict = await Submission.aaggregate_list([
+            {'$match':{'_id': submission}},
+            {
+                '$lookup':{
+                    'from': Problem._get_collection_name(),
+                    'localField': 'problem',
+                    'foreignField': '_id',
+                    'as': 'problem'
                 },
-                {
-                    '$lookup':{
-                        'from': ContestParticipation._get_collection_name(),
-                        'localField': 'participation',
-                        'foreignField': '_id',
-                        'as': 'participation'
-                    }
-                },
-                {
-                    '$project':{
-                        'problem.language_limit': True,
-                        'problem._id': True,
-                        'problem.short_circuit': True,
-                        'problem.time_limit': True,
-                        'problem.memory_limit': True,
-                        'is_pretested': True,
-                        'language': True,
-                        'date': True,
-                        'user': True,
-                        'participation.virtual': True,
-                        'participation._id': True,
-                    }
-                },
-            ]))[0]
-            
-            problem = pipeline_result['problem'][0]
-            pid = problem['_id']
-            lang_limits = problem.get('language_limit', [])
-            time = problem['time_limit']
-            memory = problem['memory_limit']
-            short_circuit = problem['short_circuit']
-            lid = pipeline_result['language']
-            is_pretested = pipeline_result['is_pretested']
-            sub_date = pipeline_result['date'] # datetime
-            uid = pipeline_result['user']
-            participation = pipeline_result['participation']
-
-            if participation:
-                part_id = participation[0]['_id']
-                part_virtual = participation[0]['virtual']
-                attempt_no = (await Submission.aaggregate_list([
-                    {
-                        '$match':{
-                            '$and':[
-                                {'problem': pid},
-                                {'participation':part_id},
-                                {'user': uid},
-                                {'date': {'$lt': sub_date}},
-                                {'status': {'$nin': ('CE', 'IE')}}
-                            ]
-                        }
-                    },{'$count': 'attempt_no'}
-                ]))[0]['attempt_no']
-            else:
-                part_id, part_virtual, attempt_no = None, None, None
-
-
-            logger.warning(part_id)
-            logger.warning(type(part_id))
-            for i in lang_limits:
-                if i.pk == lid:
-                    time, memory = i.time_limit, i.memory_limit
-                    break
-            
-            return SubmissionData(
-                time=time,
-                memory=memory,
-                short_circuit=short_circuit,
-                pretests_only=is_pretested,
-                contest_no=part_virtual,
-                attempt_no=attempt_no,
-                user=uid,
-            )
-        except Submission.DoesNotExist:
+            },
+            {
+                '$lookup':{
+                    'from': ContestParticipation._get_collection_name(),
+                    'localField': 'participation',
+                    'foreignField': '_id',
+                    'as': 'participation'
+                }
+            },
+            {
+                '$project':{
+                    'problem.language_limit': True,
+                    'problem._id': True,
+                    'problem.short_circuit': True,
+                    'problem.time_limit': True,
+                    'problem.memory_limit': True,
+                    'is_pretested': True,
+                    'language': True,
+                    'date': True,
+                    'user': True,
+                    'participation.virtual': True,
+                    'participation._id': True,
+                }
+            },
+        ])
+        if len(pipeline_result) == 0:
             logger.error('Submission vanished: %s', submission)
             json_log.error(self._make_json_log(
                 sub=self._working, action='request',
                 info='submission vanished when fetching info',
             ))
-            return
+            raise Exception('Submission vanished: %s' % submission)
+        pipeline_result = pipeline_result[0]
+            
+        problem = pipeline_result['problem'][0]
+        pid = problem['_id']
+        lang_limits = problem.get('language_limit', [])
+        time = problem['time_limit']
+        memory = problem['memory_limit']
+        short_circuit = problem['short_circuit']
+        lid = pipeline_result['language']
+        is_pretested = pipeline_result['is_pretested']
+        sub_date = pipeline_result['date'] # datetime
+        uid = pipeline_result['user']
+        participation = pipeline_result['participation']
+
+        if participation:
+            part_id = participation[0]['_id']
+            part_virtual = participation[0]['virtual']
+            attempt_no = (await Submission.aaggregate_list([
+                {
+                    '$match':{
+                        '$and':[
+                            {'problem': pid},
+                            {'participation':part_id},
+                            {'user': uid},
+                            {'date': {'$lt': sub_date}},
+                            {'status': {'$nin': ('CE', 'IE')}}
+                        ]
+                    }
+                },{'$count': 'attempt_no'}
+            ]))[0]['attempt_no']
+        else:
+            part_id, part_virtual, attempt_no = None, None, None
+
+
+        logger.warning(part_id)
+        logger.warning(type(part_id))
+        for i in lang_limits:
+            if i.pk == lid:
+                time, memory = i.time_limit, i.memory_limit
+                break
+        
+        return SubmissionData(
+            time=time,
+            memory=memory,
+            short_circuit=short_circuit,
+            pretests_only=is_pretested,
+            contest_no=part_virtual,
+            attempt_no=attempt_no,
+            user=uid,
+        )
+
 
     async def disconnect(self, force=False):
         if force:
@@ -355,24 +356,25 @@ class JudgeHandler(ZlibPacketHandler):
             attempt_no=1,
             user=1,
         )
-        self._working = id
-        self._no_response_job = asyncio.create_task(self._kill_if_no_response())
-        await self.send({
-            'name': 'submission-request',
-            'submission-id': id,
-            'problem-id': problem,
-            'language': language,
-            'source': source,
-            'time-limit': data.time,
-            'memory-limit': data.memory,
-            'short-circuit': data.short_circuit,
-            'meta': {
-                'pretests-only': data.pretests_only,
-                'in-contest': data.contest_no,
-                'attempt-no': data.attempt_no,
-                'user': data.user,
-            },
-        })
+        if data: # 防止拿不到信息
+            self._working = id
+            self._no_response_job = asyncio.create_task(self._kill_if_no_response())
+            await self.send({
+                'name': 'submission-request',
+                'submission-id': id,
+                'problem-id': problem,
+                'language': language,
+                'source': source,
+                'time-limit': data.time,
+                'memory-limit': data.memory,
+                'short-circuit': data.short_circuit,
+                'meta': {
+                    'pretests-only': data.pretests_only,
+                    'in-contest': data.contest_no,
+                    'attempt-no': data.attempt_no,
+                    'user': data.user,
+                },
+            })
 
     async def _kill_if_no_response(self):
         await asyncio.sleep(20)

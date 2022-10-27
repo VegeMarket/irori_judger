@@ -1,0 +1,9 @@
+注意secret.yml的盐值，目的机子的盐值必须一致，否则会导致用户无法登录
+
+备份：
+mongodump -d testOJ -o <somewhere>
+
+恢复：
+mongorestore -d testOJ <directory_backup>
+
+注意Problems文件夹需要单独备份，这个并不计划存在数据库里面

@@ -94,7 +94,8 @@ class ZlibPacketHandler():
     async def _on_packet(self, data):
         decompressed = zlib.decompress(data).decode('utf-8')
         self._got_packet = True
-        logger.debug(decompressed)
+        if '''"name": "ping-response"''' not in decompressed: # 不打印ping包，太多了
+            logger.debug(decompressed)
         await self.on_packet(decompressed)
 
     async def on_packet(self, data):

@@ -144,8 +144,8 @@ class JudgeList(object):
             except Exception:
                 logger.exception(
                     f'Failed to dispatch {id} ({problem}, {language}) to {judge.name}')
-                self.judges.discard(judge)
-                return self.judge(id, problem, language, source, judge_id, priority)
+                self.judges.discard(judge) # 去掉问题机，重试
+                return (await self.judge(id, problem, language, source, judge_id, priority))
         else:
             self.node_map[id] = self.queue.insert(
                 (id, problem, language, source, judge_id),

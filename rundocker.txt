@@ -1,10 +1,11 @@
-git clone --recursive https://github.com/DMOJ/judge.git
+﻿git clone --recursive https://github.com/DMOJ/judge.git
 
 cd judge/.docker
 
 make judge-tier3
 
 # 或win下 cd tier3 && docker build --build-arg TAG=master -t dmoj/judge-tier3 -t dmoj/judge-tier3:latest .
+如果报错找不到文件先试试把Dockerfile里的"${TAG}"改成${TAG}
 
 docker run -v D:\SETU\Problems:/problems --cap-add=SYS_PTRACE dmoj/judge-tier3:latest cli
 

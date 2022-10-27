@@ -147,6 +147,9 @@ async def cmdloop():
         logger.info('default admin saved.')
         del _hd, _pw, _admin
 
+    def get_command(cmdlist: list, pos: int):
+        if len(cmdlist) > pos: return cmdlist[pos]
+        return None
 
     console.message = 'irori console:#'
 
@@ -157,7 +160,11 @@ async def cmdloop():
             logger.info('type [q] to exit.')
             continue
         if cmd[:1] == '!':
-            await judge_list.judge(int(cmd[1:]), 'ds3', 'CPP20', 'int main(){return 0;}',None,1)
+            try:
+                await judge_list.judge(int(cmd[1:]), 'ds3', 'CPP20', 'int main(){return 0;}',None,1)
+            except ValueError:
+                logger.info('usage: !<submit_id>, whitespace not included.')
+
         elif cmd == 'q':
             await site_server.shutdown()
             judger_monitor.close()
